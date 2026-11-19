@@ -1,0 +1,22 @@
+services:
+  database:
+    container_name: rust-server-db
+    image: postgres:18-alpine
+    ports: 
+      - 5432:5432
+    env_file:
+      - path: .env
+    volumes:
+      - ${PWD}/db-data/:/var/lib/postgresql/
+
+  pgadmin:
+    container_name: rust-server-pg
+    image: dpage/pgadmin4:latest
+    ports:
+      - 80:80
+    env_file:
+      - .env
+    depends_on:
+      - database
+    volumes:
+      - ${PWD}/pgadmin-data/:/var/lib/pgadmin/
