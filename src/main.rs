@@ -1,6 +1,15 @@
+use crate::models::NewPost;
+
+use self::models::Post;
+use self::schema::posts;
+
 use std::convert::Infallible;
+use std::env;
+use std::io::stdin;
 use std::net::SocketAddr;
 
+use diesel::prelude::*;
+use dotenvy::dotenv;
 use http_body_util::{BodyExt, combinators::BoxBody};
 use http_body_util::{Empty, Full};
 use hyper::body::Frame;
@@ -13,8 +22,49 @@ use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 
+pub mod models;
+pub mod schema;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use crate::schema::posts::dsl::{posts, published};
+
+    let connection = &mut establish_connection();
+
+    let mut title = String::new();
+    let mut body = String::new();
+
+    println!("What would you like your title to be?");
+    stdin().read_line(&mut title).unwrap();
+    let title = title.trim_end();
+
+    println!("\nOk! Let's write {title}");
+    stdin().read_line(&mut body).unwrap();
+
+    // let post = create_post(connection, &title, &body);
+    // println!("\nSaved draft {title} with id {}", post.id);
+    //
+    // let post = diesel::update(posts.find(post.id))
+    //     .set(published.eq(true))
+    //     .returning(Post::as_returning())
+    //     .get_result(connection)
+    //     .unwrap();
+    // println!("Published post {}", post.title);
+    //
+    // let results = Post::query()
+    //     .filter(published.eq(true))
+    //     .limit(5)
+    //     .load(connection)
+    //     .expect("Error loading posts");
+    //
+    // println!("Displaying {} posts", results.len());
+    //
+    // for post in results {
+    //     println!("{}", post.title);
+    //     println!("-------\n");
+    //     println!("{}", post.body);
+    // }
+
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     let listener = TcpListener::bind(addr).await?;
     let http = http1::Builder::new();
@@ -41,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 drop(listener);
                 eprintln!("gracefull shutdown signal received");
                 break;
-            } 
+            }
         }
     }
 
@@ -144,4 +194,24 @@ async fn shutdown_signal() {
     tokio::signal::ctrl_c()
         .await
         .expect("failed to install CTRL+C signal handler");
+}
+
+pub fn establish_connection() -> PgConnection {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    PgConnection::establish(&database_url)
+        .unwrap_or_else(|_| panic!("Error connection to {}", database_url))
+}
+
+pub fn create_post(conn: &mut PgConnection, title: &str, body: &str) -> Post {
+    use crate::schema::posts;
+
+    let new_post = NewPost { title, body };
+
+    diesel::insert_into(posts::table)
+        .values(&new_post)
+        .returning(Post::as_returning())
+        .get_result(conn)
+        .expect("Error saving new post")
 }
