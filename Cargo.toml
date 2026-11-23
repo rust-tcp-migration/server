@@ -4,11 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-hyper = { version = "1", features = ["full"] }
-tokio = { version = "1", features = ["full"] }
-http-body-util = "0.1"
-hyper-util = { version = "0.1", features = ["full"] }
-tower = "0.4"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+tonic = { version = "0.14", features = ["tls-ring"] }
+tonic-health = "0.14"
+
+rocket = { version = "=0.6.0-rc.1", features = ["secrets", "tls", "json"] }
+ws = { package = "rocket_ws", version = "=0.3.0-rc.1" }
+
 diesel = { version = "2.4.0", features = ["postgres"] }
 # build libpq and openssl as part of the build process
 # uncomment these lines if you run into setup issues
