@@ -1,3 +1,4 @@
 /target
 pgadmin-data/
 db-data/
+.env
